@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixture Cleaner V2 Settings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .main-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .content-container {
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        .header {
+            grid-column: span 3;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            display: contents;
+        }
+        .input-field {
+            padding: 10px;
+            width: 200px;
+        }
+        .input-group label {
+            text-align: left;
+            margin-right: 10px;
+            align-self: center;
+        }
+        .button {
+            padding: 10px 40px;
+            margin: 10px;
+            cursor: pointer;
+            text-align: center;
+        }
+        #save {
+            grid-column: span 2;
+            justify-self: center;
+        }
+        .button-container {
+            grid-column: span 3;
+            display: flex;
+            justify-content: space-between;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 300px;
+            position: relative;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-button {
+            margin: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="content-container">
+            <div class="header">
+                <h1>Fixture Cleaner V2 Settings</h1>
+            </div>
+            <div class="input-group">
+                <label for="pump-time">Set time for Spray Pump:</label>
+                <input id="pump-time" class="input-field" type="number" placeholder="Enter time in minutes" oninput="checkInput(this)">
+                <span class="info">(minutes)</span>
+            </div>
+            <div class="input-group">
+                <label for="valve-time">Set time for Air Valve:</label>
+                <input id="valve-time" class="input-field" type="number" placeholder="Enter time in minutes" oninput="checkInput(this)">
+                <span class="info">(minutes)</span>
+            </div>
+            <div class="input-group">
+                <label for="buzzer-time">Set time for Buzzer:</label>
+                <input id="buzzer-time" class="input-field" type="number" placeholder="Enter time in seconds" oninput="checkInput(this)">
+                <span class="info">(seconds)</span>
+            </div>
+            <div class="button-container">
+                <button class="button" id="save" onclick="saveSettings()">Save</button>
+                <button class="button" id="logout" onclick="confirmLogout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideModal()">&times;</span>
+            <p id="modal-message"></p>
+            <div id="modal-buttons" class="modal-buttons">
+                <button class="modal-button" onclick="hideModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let changesMade = false;
+
+        function checkLogin() {
+            if (localStorage.getItem('loggedIn') !== 'true') {
+                window.location.href = 'Login.html';
+            }
+        }
+
+        function checkInput(input) {
+            changesMade = true;
+            if (input.value > 60) {
+                showModal("Value must be less than or equal to 60");
+                input.value = '';
+            }
+        }
+
+        function saveSettingsConfirmed() {
+            var pumpTime = document.getElementById('pump-time').value;
+            var valveTime = document.getElementById('valve-time').value;
+            var buzzerTime = document.getElementById('buzzer-time').value;
+
+            fetch(`http://172.16.20.82/save_settings?pumpTime=${pumpTime}&valveTime=${valveTime}&buzzerTime=${buzzerTime}`, { mode: 'cors' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    changesMade = false;
+                    showModal("Save success");
+                })
+                .catch(error => {
+                    showModal("Save failed!");
+                    console.error('Error:', error);
+                });
+        }
+
+        function saveSettings() {
+            var pumpTime = document.getElementById('pump-time').value;
+            var valveTime = document.getElementById('valve-time').value;
+            var buzzerTime = document.getElementById('buzzer-time').value;
+
+            if (pumpTime == 0) {
+                showModal("Please set time for spray pump");
+                return;
+            }
+
+            if (valveTime == 0) {
+                showModal("Please set time for air valve");
+                return;
+            }
+
+            if (buzzerTime == 0) {
+                showModal("Please set time for buzzer");
+                return;
+            }
+
+            showModal("Are you sure you want to change settings?", function() {
+                saveSettingsConfirmed();
+                hideModal();
+            });
+        }
+
+        function showModal(message, confirmCallback = null) {
+            var modal = document.getElementById("myModal");
+            var modalMessage = document.getElementById("modal-message");
+            modalMessage.innerText = message;
+
+            var modalButtons = document.getElementById("modal-buttons");
+            if (confirmCallback) {
+                modalButtons.innerHTML = `
+                    <button class="modal-button" onclick="hideModal()">No</button>
+                    <button class="modal-button" onclick="(${confirmCallback.toString()})(); hideModal();">Yes</button>
+                `;
+            } else {
+                modalButtons.innerHTML = '<button class="modal-button" onclick="hideModal()">OK</button>';
+            }
+
+            modal.style.display = "block";
+        }
+
+        function hideModal() {
+            var modal = document.getElementById("myModal");
+            modal.style.display = "none";
+        }
+
+        function confirmLogout() {
+            if(changesMade == true)
+            {
+                showModal("Are you sure you want to log out without saving?", function() {
+                window.location.href = 'Login.html';
+            }); 
+            }
+            else
+            {
+                window.location.href = 'Login.html';
+            }
+            
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLogin();
+        });
+    </script>
+</body>
+</html>
